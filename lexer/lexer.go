@@ -33,6 +33,15 @@ func (l *Lexer) readChar() {
 	// unicode/utf8 을 활용하면, for 문을 통해서 십진수와 사이즈로 반환가능하다.
 }
 
+// peekChar : 임시로 다음 문자를 읽어서 반환한다. 기존의 Lexer 는 바꾸지 않는다.
+func (l *Lexer) peekChar() byte {
+	if l.readPosition >= len(l.input) { // peek 할 문자가 없으면 0을 반환
+		return 0
+	} else {
+		return l.input[l.readPosition] // 다음 문자를 반환
+	}
+}
+
 // NextToken : Lexer 가 보고있는 문자에 대응하는 Token 을 반환하고, 다음 Token 으로 Lexer 를 업데이트 하는 함수
 func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
@@ -42,17 +51,45 @@ func (l *Lexer) NextToken() token.Token {
 
 	switch l.ch {
 	case '=':
-		tok = newToken(token.ASSIGN, l.ch)
+		if l.peekChar() == '=' {
+			ch := l.ch   // 넘기면 이전의 문자가 사라지니 미리 저장하기
+			l.readChar() // 보는 문자를 넘어가줘야 함
+			literal := string(ch) + string(l.ch)
+
+			tok = token.Token{Type: token.EQ, Literal: literal}
+		} else {
+			tok = newToken(token.ASSIGN, l.ch)
+		}
+	case '+':
+		tok = newToken(token.PLUS, l.ch)
+	case '-':
+		tok = newToken(token.MINUS, l.ch)
+	case '!':
+		if l.peekChar() == '=' {
+			ch := l.ch   // 넘기면 이전의 문자가 사라지니 미리 저장하기
+			l.readChar() // 보는 문자를 넘어가줘야 함
+			literal := string(ch) + string(l.ch)
+
+			tok = token.Token{Type: token.NOT_EQ, Literal: literal}
+		} else {
+			tok = newToken(token.BANG, l.ch)
+		}
+	case '*':
+		tok = newToken(token.ASTERISK, l.ch)
+	case '/':
+		tok = newToken(token.SLASH, l.ch)
 	case ';':
 		tok = newToken(token.SEMICOLON, l.ch)
+	case '<':
+		tok = newToken(token.LT, l.ch)
+	case '>':
+		tok = newToken(token.GT, l.ch)
 	case '(':
 		tok = newToken(token.LPAREN, l.ch)
 	case ')':
 		tok = newToken(token.RPAREN, l.ch)
 	case ',':
 		tok = newToken(token.COMMA, l.ch)
-	case '+':
-		tok = newToken(token.PLUS, l.ch)
 	case '{':
 		tok = newToken(token.LBRACE, l.ch)
 	case '}':
@@ -84,7 +121,7 @@ func newToken(tokenType token.TokenType, ch byte) token.Token {
 	return token.Token{Type: tokenType, Literal: string(ch)}
 }
 
-// readIdentifier : identigier 혹은 keyword 를 인식하고 문자(character) 를 반환한다. cf) 문자와 글자(letter)는 다르다.
+// readIdentifier : identifier 혹은 keyword 를 인식하고 문자(character) 를 반환한다. cf) 문자와 글자(letter)는 다르다.
 func (l *Lexer) readIdentifier() string {
 	position := l.position
 	for isLetter(l.ch) {
